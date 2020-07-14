@@ -80,6 +80,7 @@ def template_redshift(infile, z1=-0.000005, z2=.02, zstep=0.000001, plot=None,
         template = loadsdss(fits.open(template_path))
 
         z_arr, cc_arr = xcor_redshift(spec, template, z1=z1, z2=z2, zstep=zstep)
+        results['z_arr'] = z_arr  # OK to overwrite because it's always the same
         z = z_arr[cc_arr.argmax()]
 
         results['zs'].append(z)
@@ -93,6 +94,7 @@ def template_redshift(infile, z1=-0.000005, z2=.02, zstep=0.000001, plot=None,
             best_cc_arr = cc_arr
 
     results['vs'] = u.Quantity(results['vs'])
+    results['cc_arrs'] = np.array(results['cc_arrs'])
 
     if plot:
         inter = plt.isinteractive()
@@ -151,7 +153,7 @@ specrectify(images='c{scifn}',  outimages="", outpref='x', solfile='db.sol', cal
 POSTPYSALT_TEMPL="""
 from __future__ import print_function
 
-import sys
+import sys, pickle
 sys.path.insert(1, '{path_to_sagasalt}')
 
 from saga_salt import extract_target, template_redshift
@@ -160,12 +162,8 @@ extracted_fn = extract_target('xc{scifn}', (LOWER_OBJ, UPPER_OBJ))
 print('Extracted', extracted_fn)
 best_idx, results, summary = template_redshift(extracted_fn, plot='all')
 print('Redshift summary:, ', summary)
-with open('redshift_results', 'w') as f:
-    f.write(str(best_idx))
-    f.write('\n\n')
-    f.write(str(summary))
-    f.write('\n\n')
-    f.write(str(results))
+with open('redshift_results.pickle', 'w') as f:
+    pickle.dump({{'best_idx':best_idx, 'results':results, 'summary':summary}}, f)
 """[1:]
 def prepare_reduction(sciarcs, pathtoarcs, basepath='.', clobber=False):
     """
