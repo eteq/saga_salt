@@ -1,0 +1,1 @@
+docker run --name pysalt --rm --volume pysalt:/home/pysalt --volume ~/projects/saga:/mnt/saga --volume /mnt/c:/mnt/c --privileged  --env DISPLAY=$DISPLAY -w /home/pysalt -it registry.saao.ac.za/pysalt bash
