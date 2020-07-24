@@ -1,4 +1,11 @@
 import saga_salt
+from matplotlib import pyplot as plt
+
+def load_and_plot(fn):
+    spec = saga_salt.load_salt_ascii_spec(fn)
+    saga_salt.plot_spectrum(spec)
+    return spec
+
 
 if __name__ == '__main__':
     import argparse
@@ -8,5 +15,5 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    spec = saga_salt.load_salt_ascii_spec(args.file)
-    saga_salt.plot_spectrum(spec)
+    load_and_plot(args.file)
+    plt.show()

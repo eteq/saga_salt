@@ -23,13 +23,17 @@ def load_salt_ascii_spec(fn):
                                 uncertainty=StdDevUncertainty(tab['unc']**0.5))
 
 
-def plot_spectrum(spec1d):
+def plot_spectrum(spec1d,uncsq=True):
     plt.plot(spec1d.spectral_axis, spec1d.flux)
-    plt.plot(spec1d.spectral_axis, spec1d.uncertainty.array)
-    plt.show()
+    if uncsq:
+        unc = spec1d.uncertainty.array**2
+    else:
+        unc = spec1d.uncertainty.array
+    plt.plot(spec1d.spectral_axis, unc)
+    return plt.gcf()
 
 
-def extract_target(objfile, objrowtuple, clean=True,  cal_file='', out_fn_path='.'):
+def extract_target(objfile, objrowtuple, clean=True,  cal_file='', out_fn_path='.', outsuffix=''):
     """
     `objfile` is expected to have everything up to sky-subtraction (i.e., rectified)
     """
@@ -45,7 +49,7 @@ def extract_target(objfile, objrowtuple, clean=True,  cal_file='', out_fn_path='
     #              normalize=False, clean_spectra=clean)
     #hdu = pyfits.open(objfile)
     hdu = fits.open(objfile)
-    out_fn = os.path.join(out_fn_path, hdu[0].header['OBJECT'] + '_spec.txt')
+    out_fn = os.path.join(out_fn_path, hdu[0].header['OBJECT'] + '_spec'+outsuffix+'.txt')
     try:
         extract_spectra(hdu, center_row, half_width, out_fn, smooth=False,
                         grow=10, clobber=True, specformat='ascii', convert=True,
@@ -56,14 +60,25 @@ def extract_target(objfile, objrowtuple, clean=True,  cal_file='', out_fn_path='
     return out_fn
 
 def template_redshift(infile, z1=-0.000005, z2=.02, zstep=0.000001, plot=None,
-                      templs=list(range(23,29)), verbose=True):
+                      templs=list(range(23,29)), verbose=True, specmask=None):
     from zsalt.redshift import xcor_redshift, loadtext, loadiraf, loadsdss
+    from PySpectrograph import Spectrum
 
     if infile.count('fits'):
         hdu = fits.open(infile)
         spec = loadiraf(hdu)
     else:
         spec = loadtext(infile)
+
+    if specmask is not None:
+        mask = np.ones(len(spec.wavelength), dtype=bool)
+        lo, up = specmask
+        if lo is not None:
+            mask = mask & (lo < spec.wavelength)
+        if up is not None:
+            mask = mask & (spec.wavelength < up)
+        spec = Spectrum.Spectrum(spec.wavelength[mask], spec.flux[mask],
+                                 stype='continuum')
 
     best_cc = 0
     results = {'templates': templs, 'template_names':[], 'template_paths':[],
